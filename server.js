@@ -1,9 +1,9 @@
 const jsdom = require("jsdom");
+const { JSDOM } = jsdom;
 const express = require('express');
 const app = express();
-const https = require('https');
 const moment = require('moment');
-const { JSDOM } = jsdom;
+const puppeteer = require('puppeteer');
 const Bot = require('telegram-api').default;
 const Message = require('telegram-api/types/Message');
 
@@ -42,56 +42,58 @@ bot.command('check', function(message) {
 });
 
 const cards = [
-    {id: '5094274700', name: 'TITAN Xp'},
-    {id: '5094274900', name: '1080 TI'},
-    {id: '2740204200', name: '1080'},
-    {id: '5136449000', name: '1070 TI'},
-    {id: '2740281000', name: '1070'},
-    {id: '5056171200', name: '1060'}
+    {id: '5094274700', name: 'TITAN Xp', skip: false},
+    {id: '5094274900', name: '1080 TI', skip: false},
+    {id: '2740204200', name: '1080', skip: false},
+    {id: '5136449000', name: '1070 TI', skip: false},
+    {id: '2740281000', name: '1070', skip: false},
+    {id: '5056171200', name: '1060', skip: false}
 ];
 function getStatus(check) {
-    https.get('https://www.nvidia.com/en-us/geforce/products/10series/geforce-store/', (res) => {
-        let data = '';
-        res.on('data', function (chunk) {
-            data += chunk;
-        });
-        res.on('end', function () {
-            const dom = new JSDOM(data);
-            let inStock = [];
-            if (check) {
-                cards.forEach(card => {
-                    let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
-                    let str = (!(elem && elem.innerHTML.toLowerCase().match('out of stock')))
-                        ? ' ✅   '
-                        : ' ❌   ';
-                    str += `GTX ${card.name}`;
-                    inStock.push(str);
-                });
+    (async () => {
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.goto('https://www.nvidia.com/en-us/geforce/products/10series/geforce-store/');
+        let html = await page.content();
+        const dom = new JSDOM(html);
+        let inStock = [];
+        if (check) {
+            cards.forEach(card => {
+                let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
+                let str = (!(elem && elem.innerHTML.toLowerCase().match('out of stock')))
+                    ? ' ✅   '
+                    : ' ❌   ';
+                str += `GTX ${card.name}`;
+                inStock.push(str);
+            });
+            // let result = `----------------------------------\n`;
+            let result = inStock.join(`\n\n`);
+            // result += `\n----------------------------------`;
+            bot.send(new Message().text(result).to(chanId));
+        }
+        else {
+            cards.forEach(card => {
+                if (card.skip) return;
+                let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
+                if (!(elem && elem.innerHTML.toLowerCase().match('out of stock'))) {
+                    inStock.push(`✅   GTX ${card.name} - IN STOCK`);
+                    card.skip = true;
+                    setTimeout(()=>getStatus(true), 30000);
+                    setTimeout(()=>getStatus(true), 60000);
+                    setTimeout(()=>card.skip = false, 600000);
+                }
+            });
+            if (inStock.length > 0) {
                 // let result = `----------------------------------\n`;
-                let result = inStock.join(`\n\n`);
+                let result = '';
+                result += inStock.join(`\n\n`);
                 // result += `\n----------------------------------`;
+                result += '\nhttps://www.nvidia.com/en-us/geforce/products/10series/geforce-store/';
                 bot.send(new Message().text(result).to(chanId));
             }
-            else {
-                cards.forEach(card => {
-                    let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
-                    if (!(elem && elem.innerHTML.toLowerCase().match('out of stock'))) inStock.push(`✅   GTX ${card.name} - IN STOCK`);
-                });
-                if (inStock.length > 0) {
-                    // let result = `----------------------------------\n`;
-                    let result = '';
-                    result += inStock.join(`\n\n`);
-                    // result += `\n----------------------------------`;
-                    result += '\nhttps://www.nvidia.com/en-us/geforce/products/10series/geforce-store/';
-                    bot.send(new Message().text(result).to(chanId));
-                }
-            }
-            lastCheck = moment().format();
-        });
-
-    }).on('error', (e) => {
-        console.error('ERROR', e);
-    });
+        }
+        lastCheck = moment().format();
+        await browser.close();
+    })();
 }
-
 setInterval(getStatus, 60000);
