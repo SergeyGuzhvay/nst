@@ -8,7 +8,7 @@ const Bot = require('telegram-api').default;
 const Message = require('telegram-api/types/Message');
 
 // const hostname = 'arcane-woodland-39898.herokuapp.com';
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 4000;
 let lastCheck = null;
 app.get('/', (request, response) => {
     response.send(`last check on: ${lastCheck}`);
