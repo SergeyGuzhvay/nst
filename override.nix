@@ -14,6 +14,15 @@ let
   nodePackages = import ./default.nix { inherit pkgs; };
   nst = nodePackages.package.overrideAttrs ( attrs: { 
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = true;
+    preRebuild = ''
+      substitute server.js server.js.tmp \
+          --replace \
+            "const browser = await puppeteer.launch();" \
+            "const browser = await puppeteer.launch({executablePath: '${chromium}/bin/chromium-browser', args: ['--no-sandbox', '--disable-setuid-sandbox']});"
+      rm server.js
+      echo "#!/usr/bin/env node" > server.js
+      cat server.js.tmp >> server.js
+    '';
   });
 
 
