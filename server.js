@@ -28,18 +28,25 @@ let bot = new Bot({
         limit: 100
     }
 });
-const chanId = '248334115';
+const chatIds = ['248334115', '1071583'];
 bot.start();
-bot.send(new Message().text('STARTED').to(chanId));
+sendMessage('STARTED');
 
 bot.command('start', function(message) {
 
-    bot.send(new Message().text('Use /check to check current stock').to(chanId));
+    bot.send(new Message().text('Use /check to check current stock').to(message.chat.id));
 });
 
 bot.command('check', function(message) {
-    getStatus(true);
+    getStatus(message.chat.id);
 });
+
+function sendMessage(msg) {
+    chatIds.map(function (id) {
+        bot.send(new Message().text(msg).to(id));
+    })
+}
+
 
 const cards = [
     {id: '5094274700', name: 'TITAN Xp', skip: false},
@@ -49,7 +56,7 @@ const cards = [
     {id: '2740281000', name: '1070', skip: false},
     {id: '5056171200', name: '1060', skip: false}
 ];
-function getStatus(check) {
+function getStatus(id) {
     (async () => {
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
@@ -57,7 +64,7 @@ function getStatus(check) {
         let html = await page.content();
         const dom = new JSDOM(html);
         let inStock = [];
-        if (check) {
+        if (id) {
             cards.forEach(card => {
                 let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
                 let str = (!(elem && elem.innerHTML.toLowerCase().match('out of stock')))
@@ -69,7 +76,7 @@ function getStatus(check) {
             // let result = `----------------------------------\n`;
             let result = inStock.join(`\n\n`);
             // result += `\n----------------------------------`;
-            bot.send(new Message().text(result).to(chanId));
+            bot.send(new Message().text(result).to(id));
         }
         else {
             cards.forEach(card => {
@@ -89,7 +96,7 @@ function getStatus(check) {
                 result += inStock.join(`\n\n`);
                 // result += `\n----------------------------------`;
                 result += '\nhttps://www.nvidia.com/en-us/geforce/products/10series/geforce-store/';
-                bot.send(new Message().text(result).to(chanId));
+                sendMessage(result);
             }
         }
         lastCheck = moment().format();
