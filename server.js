@@ -49,7 +49,7 @@ function sendMessage(msg) {
 
 
 const cards = [
-    {id: '5094274700', name: 'TITAN Xp', skip: false},
+    // {id: '5094274700', name: 'TITAN Xp', skip: false},
     {id: '5094274900', name: '1080 TI', skip: false},
     {id: '2740204200', name: '1080', skip: false},
     {id: '5136449000', name: '1070 TI', skip: false},
@@ -67,7 +67,7 @@ function getStatus(id) {
         if (id) {
             cards.forEach(card => {
                 let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
-                let str = (!(elem && elem.innerHTML.toLowerCase().match('out of stock')))
+                let str = ((elem && elem.innerHTML.toLowerCase().match('add to cart')))
                     ? ' ✅   '
                     : ' ❌   ';
                 str += `GTX ${card.name}`;
@@ -82,7 +82,7 @@ function getStatus(id) {
             cards.forEach(card => {
                 if (card.skip) return;
                 let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
-                if (!(elem && elem.innerHTML.toLowerCase().match('out of stock'))) {
+                if ((elem && elem.innerHTML.toLowerCase().match('add to cart'))) {
                     inStock.push(`✅   GTX ${card.name} - IN STOCK`);
                     card.skip = true;
                     setTimeout(()=>getStatus(true), 30000);
