@@ -103,4 +103,4 @@ function getStatus(id) {
         await browser.close();
     })();
 }
-setInterval(getStatus, 60000);
+setInterval(getStatus, 30000);
