@@ -84,9 +84,7 @@ function getStatus(id) {
                 let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
                 if ((elem && elem.innerHTML.toLowerCase().match('add to cart'))) {
                     inStock.push(`✅   GTX ${card.name} - IN STOCK`);
-                    card.skip = true;
-                    setTimeout(()=>getStatus(true), 30000);
-                    setTimeout(()=>getStatus(true), 60000);
+                    setTimeout(()=>card.skip = false, 80000);
                     setTimeout(()=>card.skip = false, 600000);
                 }
             });
