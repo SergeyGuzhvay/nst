@@ -16,6 +16,7 @@
     "express": "^4.16.3",
     "jsdom": "^11.6.2",
     "moment": "^2.21.0",
+    "nodemailer": "^4.6.4",
     "puppeteer": "^1.2.0",
     "telegram-api": "^4.0.0",
     "zombie": "^5.0.8"

@@ -60,44 +60,49 @@ function getStatus(id) {
     (async () => {
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
-        await page.goto('https://www.nvidia.com/en-us/geforce/products/10series/geforce-store/');
-        let html = await page.content();
-        const dom = new JSDOM(html);
-        let inStock = [];
-        if (id) {
-            cards.forEach(card => {
-                let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
-                let str = ((elem && elem.innerHTML.toLowerCase().match('add to cart')))
-                    ? ' ✅   '
-                    : ' ❌   ';
-                str += `GTX ${card.name}`;
-                inStock.push(str);
-            });
-            // let result = `----------------------------------\n`;
-            let result = inStock.join(`\n\n`);
-            // result += `\n----------------------------------`;
-            bot.send(new Message().text(result).to(id));
-        }
-        else {
-            cards.forEach(card => {
-                if (card.skip) return;
-                let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
-                if ((elem && elem.innerHTML.toLowerCase().match('add to cart'))) {
-                    inStock.push(`✅   GTX ${card.name} - IN STOCK`);
-                    setTimeout(()=>card.skip = true, 80000);
-                    setTimeout(()=>card.skip = false, 600000);
-                }
-            });
-            if (inStock.length > 0) {
+        try {
+            await page.goto('https://www.nvidia.com/en-us/geforce/products/10series/geforce-store/');
+            let html = await page.content();
+            const dom = new JSDOM(html);
+            let inStock = [];
+            if (id) {
+                cards.forEach(card => {
+                    let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
+                    let str = ((elem && elem.innerHTML.toLowerCase().match('add to cart')))
+                        ? ' ✅   '
+                        : ' ❌   ';
+                    str += `GTX ${card.name}`;
+                    inStock.push(str);
+                });
                 // let result = `----------------------------------\n`;
-                let result = '';
-                result += inStock.join(`\n\n`);
+                let result = inStock.join(`\n\n`);
                 // result += `\n----------------------------------`;
-                result += '\nhttps://www.nvidia.com/en-us/geforce/products/10series/geforce-store/';
-                sendMessage(result);
+                bot.send(new Message().text(result).to(id));
             }
+            else {
+                cards.forEach(card => {
+                    if (card.skip) return;
+                    let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
+                    if ((elem && elem.innerHTML.toLowerCase().match('add to cart'))) {
+                        inStock.push(`✅   GTX ${card.name} - IN STOCK`);
+                        setTimeout(() => card.skip = true, 80000);
+                        setTimeout(() => card.skip = false, 600000);
+                    }
+                });
+                if (inStock.length > 0) {
+                    // let result = `----------------------------------\n`;
+                    let result = '';
+                    result += inStock.join(`\n\n`);
+                    // result += `\n----------------------------------`;
+                    result += '\nhttps://www.nvidia.com/en-us/geforce/products/10series/geforce-store/';
+                    sendMessage(result);
+                }
+            }
+            lastCheck = moment().format();
         }
-        lastCheck = moment().format();
+        catch(err) {
+            await browser.close();
+        }
         await browser.close();
     })();
 }
