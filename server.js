@@ -57,29 +57,37 @@ const cards = [
   },
 ];
 
-const getStatus = async (card, browser) => {
+const mainUrl = 'https://www.newegg.com/p/pl?N=50001312%20100007709%208000%20601408874%20601303642';
+
+const getStatus = async (browser) => {
+  const inStock = [];
   const page = await browser.newPage();
-  await page.goto(card.url);
-  await page.type('.product-buy-box', 'Headless Chrome');
+  await page.goto(mainUrl);
   let html = await page.content();
   const dom = new JSDOM(html);
-  let elem = dom.window.document.querySelector('.product-buy-box .btn-primary');
-  return !!((elem && elem.childNodes[0].nodeValue.trim().toLowerCase().match('add to cart')));
+  let grid = dom.window.document.querySelector('.items-grid-view');
+  if (grid) {
+    const items = [...grid.querySelectorAll('.item-cell')];
+    const itemsInStock = items.filter(item => item.querySelector('.item-button-area .btn-primary')?.childNodes[0].nodeValue.trim().toLowerCase() === 'add to cart')
+    itemsInStock.forEach(cardEl => {
+      const title = cardEl.querySelector('.item-title');
+      inStock.push({name: title.text, url: title.href})
+    })
+  }
+  return inStock;
 }
 
 const mainCheck = async (chatId) => {
   const browser = await puppeteer.launch();
-  for (const card of cards) {
-    const isInStock = await getStatus(card, browser);
-    if (isInStock) {
-      if (card.skip) continue;
-      const msg = `✅  ${card.name} - IN STOCK \n${card.url}`;
-      sendMessage(msg);
-    }
+  const inStockArray = await getStatus(browser);
+  for (const card of inStockArray) {
+    const msg = `✅  ${card.name} \n${card.url}`;
+    sendMessage(msg);
   }
+
 
   lastCheck = moment().format();
   await browser.close();
 }
-setInterval(mainCheck.bind('248334115'), 60000);
-// mainCheck('248334115');
+// setInterval(mainCheck.bind('248334115'), 60000);
+mainCheck('248334115');
