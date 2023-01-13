@@ -10,13 +10,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "crawler": "^1.1.2",
+    "crawler": "^1.4.0",
     "express": "^4.16.3",
     "jsdom": "^11.6.2",
     "moment": "^2.21.0",
     "node-telegram-bot-api": "^0.61.0",
     "phantom": "^4.0.12",
     "puppeteer": "^19.5.0",
-    "zombie": "^5.0.8"
+    "zombie": "^6.1.4"
   }
 }
