@@ -1,106 +1,85 @@
 const jsdom = require("jsdom");
-const { JSDOM } = jsdom;
+const {JSDOM} = jsdom;
 const express = require('express');
 const app = express();
 const moment = require('moment');
 const puppeteer = require('puppeteer');
-const Bot = require('telegram-api').default;
-const Message = require('telegram-api/types/Message');
+const Bot = require('node-telegram-bot-api');
 
 // const hostname = 'arcane-woodland-39898.herokuapp.com';
 const port = process.env.PORT || 4000;
 let lastCheck = null;
 app.get('/', (request, response) => {
-    response.send(`last check on: ${lastCheck}`);
+  response.send(`last check on: ${lastCheck}`);
 });
 app.listen(port, (err) => {
-    if (err) {
-        return console.log('something bad happened', err)
-    }
-    console.log(`server is listening on ${port}`)
+  if (err) {
+    return console.log('something bad happened', err)
+  }
+  console.log(`server is listening on ${port}`)
 });
 
-let bot = new Bot({
-    token: '568473371:AAGUBn-QNXJEmuDrrYHo0cQgDnmLAnUy1b0',
-    update: {
-        timeout: 0,
-        offset: 0,
-        limit: 100
-    }
-});
-const chatIds = ['248334115', '1071583'];
-bot.start();
-sendMessage('STARTED');
+const token = '568473371:AAGUBn-QNXJEmuDrrYHo0cQgDnmLAnUy1b0';
+const bot = new Bot(token, {polling: true});
 
-bot.command('start', function(message) {
-
-    bot.send(new Message().text('Use /check to check current stock').to(message.chat.id));
-});
-
-bot.command('check', function(message) {
-    getStatus(message.chat.id);
-});
+const chatIds = ['248334115'];
 
 function sendMessage(msg) {
-    chatIds.map(function (id) {
-        bot.send(new Message().text(msg).to(id));
-    })
+  chatIds.map(function (id) {
+    const opts = {parse_mode: 'Markdown'}
+    bot.sendMessage(id, msg);
+  })
 }
+
+sendMessage('STARTED');
+
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  mainCheck(chatId);
+});
 
 
 const cards = [
-    // {id: '5094274700', name: 'TITAN Xp', skip: false},
-    {id: '5094274900', name: '1080 TI', skip: false},
-    {id: '2740204200', name: '1080', skip: false},
-    {id: '5136449000', name: '1070 TI', skip: false},
-    {id: '2740281000', name: '1070', skip: false},
-    {id: '5056171200', name: '1060', skip: false}
+  {
+    url: 'https://www.newegg.com/msi-geforce-rtx-4090-rtx-4090-gaming-trio-24g/p/N82E16814137762',
+    name: 'RTX 4090 GAMING TRIO',
+    skip: false
+  },
+  {
+    url: 'https://www.newegg.com/msi-geforce-rtx-4090-rtx-4090-gaming-x-trio-24g/p/N82E16814137761',
+    name: 'RTX 4090 GAMING X TRIO',
+    skip: false
+  },
+  {
+    url: 'https://www.newegg.com/msi-geforce-rtx-4090-rtx-4090-suprim-x-24g/p/N82E16814137760',
+    name: 'RTX 4090 SUPRIM X',
+    skip: false
+  },
 ];
-function getStatus(id) {
-    (async () => {
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-        await page.goto('https://www.nvidia.com/en-us/geforce/products/10series/geforce-store/');
-        let html = await page.content();
-        const dom = new JSDOM(html);
-        let inStock = [];
-        if (id) {
-            cards.forEach(card => {
-                let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
-                let str = ((elem && elem.innerHTML.toLowerCase().match('add to cart')))
-                    ? ' ✅   '
-                    : ' ❌   ';
-                str += `GTX ${card.name}`;
-                inStock.push(str);
-            });
-            // let result = `----------------------------------\n`;
-            let result = inStock.join(`\n\n`);
-            // result += `\n----------------------------------`;
-            bot.send(new Message().text(result).to(id));
-        }
-        else {
-            cards.forEach(card => {
-                if (card.skip) return;
-                let elem = dom.window.document.querySelector(`[data-digital-river-id="${card.id}"]`);
-                if ((elem && elem.innerHTML.toLowerCase().match('add to cart'))) {
-                    inStock.push(`✅   GTX ${card.name} - IN STOCK`);
-                    card.skip = true;
-                    setTimeout(()=>getStatus(true), 30000);
-                    setTimeout(()=>getStatus(true), 60000);
-                    setTimeout(()=>card.skip = false, 600000);
-                }
-            });
-            if (inStock.length > 0) {
-                // let result = `----------------------------------\n`;
-                let result = '';
-                result += inStock.join(`\n\n`);
-                // result += `\n----------------------------------`;
-                result += '\nhttps://www.nvidia.com/en-us/geforce/products/10series/geforce-store/';
-                sendMessage(result);
-            }
-        }
-        lastCheck = moment().format();
-        await browser.close();
-    })();
+
+const getStatus = async (card, browser) => {
+  const page = await browser.newPage();
+  await page.goto(card.url);
+  await page.type('.product-buy-box', 'Headless Chrome');
+  let html = await page.content();
+  const dom = new JSDOM(html);
+  let elem = dom.window.document.querySelector('.product-buy-box .btn-primary');
+  return !!((elem && elem.childNodes[0].nodeValue.trim().toLowerCase().match('add to cart')));
 }
-setInterval(getStatus, 60000);
+
+const mainCheck = async (chatId) => {
+  const browser = await puppeteer.launch();
+  for (const card of cards) {
+    const isInStock = await getStatus(card, browser);
+    if (isInStock) {
+      if (card.skip) continue;
+      const msg = `✅  ${card.name} - IN STOCK \n${card.url}`;
+      sendMessage(msg);
+    }
+  }
+
+  lastCheck = moment().format();
+  await browser.close();
+}
+setInterval(mainCheck.bind('248334115'), 60000);
+// mainCheck('248334115');

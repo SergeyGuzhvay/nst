@@ -14,9 +14,9 @@
     "express": "^4.16.3",
     "jsdom": "^11.6.2",
     "moment": "^2.21.0",
+    "node-telegram-bot-api": "^0.61.0",
     "phantom": "^4.0.12",
-    "puppeteer": "^1.2.0",
-    "telegram-api": "^4.0.0",
+    "puppeteer": "^19.5.0",
     "zombie": "^5.0.8"
   }
 }
